@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Hide Bolt branding */
+[data-bolt-branding],
+.bolt-branding,
+iframe[src*="bolt"],
+div[class*="bolt-brand"],
+a[href*="bolt.new"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Additional selectors to ensure branding is hidden */
+body::after,
+html::after,
+#root::after {
+  content: none !important;
+}
+
+/* Hide any floating elements that might contain branding */
+div[style*="position: fixed"][style*="bottom"],
+div[style*="position: absolute"][style*="bottom"] {
+  display: none !important;
+}
