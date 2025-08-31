@@ -1,4 +1,4 @@
-```typescript
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -259,4 +259,3 @@ const RegisterPage: React.FC = () => {
 };
 
 export default RegisterPage;
-```
