@@ -18,28 +18,30 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     setError('');
     
-    if (formData.email && formData.password) {
-      try {
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password
-        });
-
-        if (authError) {
-          setError(authError.message);
-        } else if (data.user) {
-          // Navigation will be handled by the auth state change listener
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error('Login error:', error);
-        setError('Login failed. Please try again.');
-      }
-    } else {
+    if (!formData.email || !formData.password) {
       setError('Please enter both email and password');
+      setLoading(false);
+      return;
     }
-    
-    setLoading(false);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (authError) {
+        setError(authError.message);
+      } else if (data.user) {
+        // Navigation will be handled by the auth state change listener
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

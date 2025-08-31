@@ -75,7 +75,6 @@ const RegisterPage: React.FC = () => {
         if (authError) {
           console.error('Auth signup error:', authError.message, authError);
           setErrors({ general: `Auth error: ${authError.message}` });
-          setLoading(false);
           return;
         }
 
@@ -104,7 +103,6 @@ const RegisterPage: React.FC = () => {
             if (profileError) {
               console.error('Profile creation error:', profileError);
               setErrors({ general: `Profile creation failed: ${profileError.message}` });
-              setLoading(false);
               return;
             }
 
@@ -129,9 +127,9 @@ const RegisterPage: React.FC = () => {
         console.error('Unexpected registration error:', error);
         setErrors({ general: 'Registration failed. Please check the console for details.' });
       }
+    } else {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
