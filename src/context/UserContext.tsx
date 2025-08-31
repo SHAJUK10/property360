@@ -1,28 +1,32 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
-  name: string;
   email: string;
+  name: string;
   phone: string;
   role: string;
-  profileImage?: string;
-  bannerImage?: string;
   serviceName?: string;
   bio?: string;
   location?: string;
   price?: string;
+  profileImage?: string;
+  bannerImage?: string;
 }
 
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  loading: boolean;
   recentlyBrowsed: User[];
   addToRecentlyBrowsed: (user: User) => void;
   shortlisted: User[];
   addToShortlist: (user: User) => void;
   removeFromShortlist: (userId: string) => void;
   isShortlisted: (userId: string) => boolean;
+  logout: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -36,29 +40,89 @@ export const useUser = () => {
 };
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [recentlyBrowsed, setRecentlyBrowsed] = useState<User[]>([]);
   const [shortlisted, setShortlisted] = useState<User[]>([]);
 
+  // Load recently browsed and shortlisted from localStorage
   useEffect(() => {
-    // Load data from localStorage on mount
-    const savedUser = localStorage.getItem('currentUser');
     const savedRecentlyBrowsed = localStorage.getItem('recentlyBrowsed');
     const savedShortlisted = localStorage.getItem('shortlisted');
 
-    if (savedUser) setUser(JSON.parse(savedUser));
     if (savedRecentlyBrowsed) setRecentlyBrowsed(JSON.parse(savedRecentlyBrowsed));
     if (savedShortlisted) setShortlisted(JSON.parse(savedShortlisted));
   }, []);
 
-  useEffect(() => {
-    // Save user to localStorage when it changes
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('currentUser');
+  // Fetch user profile from profiles table
+  const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return {
+        id: supabaseUser.id,
+        email: supabaseUser.email!,
+        name: profile.name,
+        phone: profile.phone,
+        role: profile.role,
+        serviceName: profile.service_name,
+        bio: profile.bio,
+        location: profile.location,
+        price: profile.price,
+        profileImage: profile.profile_image,
+        bannerImage: profile.banner_image
+      };
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      return null;
     }
-  }, [user]);
+  };
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setLoading(true);
+        
+        if (session?.user) {
+          const userProfile = await fetchUserProfile(session.user);
+          setUserState(userProfile);
+        } else {
+          setUserState(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const setUser = async (userData: User | null) => {
+    if (userData === null) {
+      await logout();
+    } else {
+      setUserState(userData);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUserState(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   const addToRecentlyBrowsed = (viewedUser: User) => {
     setRecentlyBrowsed(prev => {
@@ -94,12 +158,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <UserContext.Provider value={{
       user,
       setUser,
+      loading,
       recentlyBrowsed,
       addToRecentlyBrowsed,
       shortlisted,
       addToShortlist,
       removeFromShortlist,
-      isShortlisted
+      isShortlisted,
+      logout
     }}>
       {children}
     </UserContext.Provider>

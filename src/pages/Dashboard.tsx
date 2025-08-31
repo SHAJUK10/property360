@@ -5,7 +5,18 @@ import Header from '../components/Header';
 import { User, Heart, Eye, Star, Edit, Search } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { user, recentlyBrowsed, shortlisted } = useUser();
+  const { user, loading, recentlyBrowsed, shortlisted } = useUser();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-[#555555]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

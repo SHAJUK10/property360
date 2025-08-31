@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { Shield, ArrowRight } from 'lucide-react';
 
@@ -43,10 +44,10 @@ const OtpPage: React.FC = () => {
       const registrationData = localStorage.getItem('registrationData');
       if (registrationData) {
         const userData = JSON.parse(registrationData);
-        const newUser = {
-          id: Date.now().toString(),
-          name: userData.name,
+        const newUser: any = {
+          id: userData.userId,
           email: userData.email,
+          name: userData.name,
           phone: userData.phone,
           role: userData.role
         };

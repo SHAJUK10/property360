@@ -1,39 +1,45 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
+import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { Mail, Lock, LogIn } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setUser } = useUser();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     
-    // Demo login - in real app, this would authenticate against a backend
     if (formData.email && formData.password) {
-      const demoUser = {
-        id: 'demo-user-' + Date.now(),
-        name: 'Demo User',
-        email: formData.email,
-        phone: '9876543210',
-        role: 'Property 360',
-        serviceName: 'Premium Property Services',
-        bio: 'Expert in property transactions and consultancy',
-        location: 'Mumbai, Maharashtra'
-      };
-      
-      setUser(demoUser);
-      navigate('/dashboard');
+      try {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        });
+
+        if (authError) {
+          setError(authError.message);
+        } else if (data.user) {
+          // Navigation will be handled by the auth state change listener
+          navigate('/dashboard');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        setError('Login failed. Please try again.');
+      }
     } else {
       setError('Please enter both email and password');
     }
+    
+    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,10 +100,11 @@ const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors flex items-center justify-center space-x-2"
+              disabled={loading}
+              className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <LogIn size={18} />
-              <span>Login</span>
+              <span>{loading ? 'Logging in...' : 'Login'}</span>
             </button>
           </form>
 

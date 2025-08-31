@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { User, Mail, Phone, Briefcase, Lock } from 'lucide-react';
 
@@ -15,6 +16,7 @@ const roles = [
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,8 +32,11 @@ const RegisterPage: React.FC = () => {
     return phoneRegex.test(phone);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setErrors({});
+    
     const newErrors: Record<string, string> = {};
 
     // Validation
@@ -49,10 +54,53 @@ const RegisterPage: React.FC = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      // Store registration data temporarily
-      localStorage.setItem('registrationData', JSON.stringify(formData));
-      navigate('/otp');
+      try {
+        // Create user in Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            emailRedirectTo: undefined // Disable email confirmation for demo
+          }
+        });
+
+        if (authError) {
+          setErrors({ general: authError.message });
+          setLoading(false);
+          return;
+        }
+
+        if (authData.user) {
+          // Create profile in profiles table
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              name: formData.name,
+              phone: formData.phone,
+              role: formData.role
+            });
+
+          if (profileError) {
+            setErrors({ general: 'Failed to create profile. Please try again.' });
+            setLoading(false);
+            return;
+          }
+
+          // Store registration data temporarily for OTP flow
+          localStorage.setItem('registrationData', JSON.stringify({
+            ...formData,
+            userId: authData.user.id
+          }));
+          navigate('/otp');
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        setErrors({ general: 'Registration failed. Please try again.' });
+      }
     }
+    
+    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -174,11 +222,18 @@ const RegisterPage: React.FC = () => {
               {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
             </div>
 
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-600 text-sm">{errors.general}</p>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors"
+              disabled={loading}
+              className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Register & Verify Mobile
+              {loading ? 'Creating Account...' : 'Register & Verify Mobile'}
             </button>
           </form>
 
