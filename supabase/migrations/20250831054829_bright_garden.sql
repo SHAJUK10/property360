@@ -1,4 +1,4 @@
-```sql
+
 -- Drop any existing INSERT policy on the profiles table that might be causing issues
 -- This ensures we start fresh with the correct policy.
 DROP POLICY IF EXISTS "Allow authenticated users to insert own profile" ON public.profiles;
@@ -9,4 +9,3 @@ DROP POLICY IF EXISTS "Allow authenticated users to insert own profile" ON publi
 CREATE POLICY "Allow authenticated users to insert own profile"
 ON public.profiles FOR INSERT
 WITH CHECK (auth.uid() = id);
-```
