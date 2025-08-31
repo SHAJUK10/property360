@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
@@ -58,38 +57,31 @@ const RegisterPage: React.FC = () => {
 
     if (Object.keys(newErrors).length === 0) {
       try {
-        // Create user in Supabase Auth
+        console.log('Attempting signup with:', { email: formData.email, password: '****' });
+        // Create user in Supabase Auth with metadata
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
+            data: {
+              name: formData.name,
+              phone: formData.phone,
+              role: formData.role
+            },
             emailRedirectTo: undefined // Disable email confirmation for demo
           }
         });
 
         if (authError) {
-          setErrors({ general: authError.message });
+          console.error('Auth signup error:', authError.message, authError);
+          setErrors({ general: `Auth error: ${authError.message}` });
           setLoading(false);
           return;
         }
 
         if (authData.user) {
-          // Create profile in profiles table
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authData.user.id,
-              name: formData.name,
-              phone: formData.phone,
-              role: formData.role
-            });
-
-          if (profileError) {
-            setErrors({ general: 'Failed to create profile. Please try again.' });
-            setLoading(false);
-            return;
-          }
-
+          console.log('Signup successful, user data:', authData.user);
+          // Profile will be created automatically by the trigger
           // Set user in context and navigate to dashboard
           const newUser = {
             id: authData.user.id,
@@ -99,11 +91,12 @@ const RegisterPage: React.FC = () => {
             role: formData.role
           };
           setUser(newUser);
+          console.log('Navigating to dashboard with user:', newUser);
           navigate('/dashboard');
         }
       } catch (error) {
-        console.error('Registration error:', error);
-        setErrors({ general: 'Registration failed. Please try again.' });
+        console.error('Unexpected registration error:', error);
+        setErrors({ general: 'Registration failed. Please check the console for details.' });
       }
     }
     
@@ -226,36 +219,4 @@ const RegisterPage: React.FC = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003366] focus:border-transparent"
                 placeholder="Confirm your password"
               />
-              {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
-            </div>
-
-            {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-600 text-sm">{errors.general}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creating Account...' : 'Register & Login'}
-            </button>
-          </form>
-
-          <div className="text-center mt-6">
-            <p className="text-[#555555]">
-              Already have an account?{' '}
-              <a href="/login" className="text-[#FF9933] font-semibold hover:underline">
-                Login here
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default RegisterPage;
+              {errors.confirmPassword
