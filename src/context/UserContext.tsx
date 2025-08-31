@@ -56,6 +56,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch user profile from profiles table
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
+    console.log('🔍 fetchUserProfile called with user:', supabaseUser.id, supabaseUser.email);
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -64,11 +65,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
+        console.error('❌ Error fetching profile from database:', error);
         console.error('Error fetching profile:', error);
         return null;
       }
 
-      return {
+      console.log('✅ Profile data fetched successfully:', profile);
+      
+      const userProfile = {
         id: supabaseUser.id,
         email: supabaseUser.email!,
         name: profile.name,
@@ -81,7 +85,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profileImage: profile.profile_image,
         bannerImage: profile.banner_image
       };
+      
+      console.log('🔄 Transformed user profile:', userProfile);
+      return userProfile;
     } catch (error) {
+      console.error('💥 Unexpected error in fetchUserProfile:', error);
       console.error('Error in fetchUserProfile:', error);
       return null;
     }
@@ -89,17 +97,23 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Listen for auth state changes
   useEffect(() => {
+    console.log('🎯 Setting up auth state listener...');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 Auth state changed:', event, 'Session exists:', !!session);
         setLoading(true);
         
         if (session?.user) {
+          console.log('👤 User session found, fetching profile...');
           const userProfile = await fetchUserProfile(session.user);
+          console.log('📝 Setting user profile in context:', userProfile);
           setUserState(userProfile);
         } else {
+          console.log('🚫 No user session, clearing user state');
           setUserState(null);
         }
         
+        console.log('✨ Auth state processing complete, loading set to false');
         setLoading(false);
       }
     );
@@ -108,6 +122,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const setUser = async (userData: User | null) => {
+    console.log('🔧 setUser called with:', userData);
     if (userData === null) {
       await logout();
     } else {
@@ -116,10 +131,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    console.log('🚪 Logout initiated...');
     try {
       await supabase.auth.signOut();
+      console.log('✅ Logout successful');
       setUserState(null);
     } catch (error) {
+      console.error('❌ Logout error:', error);
       console.error('Error logging out:', error);
     }
   };
