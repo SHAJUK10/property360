@@ -90,7 +90,7 @@ const RegisterPage: React.FC = () => {
             return;
           }
 
-          // Set user in context and navigate to dashboard directly
+          // Set user in context and navigate to dashboard
           const newUser = {
             id: authData.user.id,
             email: authData.user.email!,
