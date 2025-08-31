@@ -1,8 +1,10 @@
+```typescript
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { User, Mail, Phone, Briefcase, Lock } from 'lucide-react';
+import { useUser } from '../context/UserContext'; // Import useUser
 
 const roles = [
   'Property 360',
@@ -16,6 +18,7 @@ const roles = [
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setUser } = useUser(); // Use setUser from context
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -87,12 +90,16 @@ const RegisterPage: React.FC = () => {
             return;
           }
 
-          // Store registration data temporarily for OTP flow
-          localStorage.setItem('registrationData', JSON.stringify({
-            ...formData,
-            userId: authData.user.id
-          }));
-          navigate('/otp');
+          // Set user in context and navigate to dashboard directly
+          const newUser = {
+            id: authData.user.id,
+            email: authData.user.email!,
+            name: formData.name,
+            phone: formData.phone,
+            role: formData.role
+          };
+          setUser(newUser);
+          navigate('/dashboard');
         }
       } catch (error) {
         console.error('Registration error:', error);
@@ -233,7 +240,7 @@ const RegisterPage: React.FC = () => {
               disabled={loading}
               className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Account...' : 'Register & Verify Mobile'}
+              {loading ? 'Creating Account...' : 'Register & Login'}
             </button>
           </form>
 
@@ -252,3 +259,4 @@ const RegisterPage: React.FC = () => {
 };
 
 export default RegisterPage;
+```
