@@ -58,14 +58,64 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
     console.log('🔍 fetchUserProfile called with user:', supabaseUser.id, supabaseUser.email);
     try {
+      console.log('📡 Attempting to fetch profile from database...');
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
 
+      console.log('📊 Database query result:', { profile, error });
+
       if (error) {
-        console.error('❌ Error fetching profile from database:', error);
+        console.error('❌ Error fetching profile from database:', error.message, error.code, error.details);
+        
+        // If profile doesn't exist, create it from auth metadata
+        if (error.code === 'PGRST116') {
+          console.log('👤 Profile not found, creating from auth metadata...');
+          const authMetadata = supabaseUser.user_metadata;
+          
+          if (authMetadata.name && authMetadata.phone && authMetadata.role) {
+            console.log('📝 Creating profile with metadata:', authMetadata);
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: supabaseUser.id,
+                name: authMetadata.name,
+                phone: authMetadata.phone,
+                role: authMetadata.role
+              })
+              .select()
+              .single();
+
+            if (createError) {
+              console.error('❌ Error creating profile:', createError);
+              return null;
+            }
+
+            console.log('✅ Profile created successfully:', newProfile);
+            const userProfile = {
+              id: supabaseUser.id,
+              email: supabaseUser.email!,
+              name: newProfile.name,
+              phone: newProfile.phone,
+              role: newProfile.role,
+              serviceName: newProfile.service_name,
+              bio: newProfile.bio,
+              location: newProfile.location,
+              price: newProfile.price,
+              profileImage: newProfile.profile_image,
+              bannerImage: newProfile.banner_image
+            };
+            
+            console.log('🔄 Transformed user profile from new profile:', userProfile);
+            return userProfile;
+          } else {
+            console.error('❌ No metadata available to create profile');
+            return null;
+          }
+        }
+        
         console.error('Error fetching profile:', error);
         return null;
       }
