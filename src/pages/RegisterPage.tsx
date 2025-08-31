@@ -219,4 +219,36 @@ const RegisterPage: React.FC = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003366] focus:border-transparent"
                 placeholder="Confirm your password"
               />
-              {errors.confirmPassword
+              {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+            </div>
+
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-600 text-sm">{errors.general}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#003366] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating Account...' : 'Register & Login'}
+            </button>
+          </form>
+
+          <div className="text-center mt-6">
+            <p className="text-[#555555]">
+              Already have an account?{' '}
+              <a href="/login" className="text-[#FF9933] font-semibold hover:underline">
+                Login here
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RegisterPage;
