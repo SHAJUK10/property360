@@ -81,7 +81,26 @@ const RegisterPage: React.FC = () => {
 
         if (authData.user) {
           console.log('Signup successful, user data:', authData.user);
-          // Profile will be created automatically by the trigger
+          
+          // Create profile in profiles table
+          console.log('Creating profile for user:', authData.user.id);
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              name: formData.name,
+              phone: formData.phone,
+              role: formData.role
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            setErrors({ general: `Profile creation failed: ${profileError.message}` });
+            setLoading(false);
+            return;
+          }
+
+          console.log('Profile created successfully');
           // Set user in context and navigate to dashboard
           const newUser = {
             id: authData.user.id,
