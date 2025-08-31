@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import { User, Camera, FileText, MapPin, Phone, Mail, Save } from 'lucide-react';
 
 const ProfileUpdate: React.FC = () => {
   const navigate = useNavigate();
-  const { user, setUser } = useUser();
+  const { user, setUser, loading } = useUser();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -37,6 +40,17 @@ const ProfileUpdate: React.FC = () => {
     }
   }, [user]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+          <p className="text-xl text-[#555555]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -48,16 +62,55 @@ const ProfileUpdate: React.FC = () => {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
+    setSaveError('');
     
-    const updatedUser = {
-      ...user,
-      ...formData
-    };
+    try {
+      // Update profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          phone: formData.phone,
+          role: formData.role,
+          service_name: formData.serviceName,
+          bio: formData.bio,
+          location: formData.location,
+          price: formData.price,
+          profile_image: formData.profileImage,
+          banner_image: formData.bannerImage
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        setSaveError('Failed to update profile. Please try again.');
+        console.error('Profile update error:', error);
+      } else {
+        // Update local user state
+        const updatedUser = {
+          ...user,
+          name: formData.name,
+          phone: formData.phone,
+          role: formData.role,
+          serviceName: formData.serviceName,
+          bio: formData.bio,
+          location: formData.location,
+          price: formData.price,
+          profileImage: formData.profileImage,
+          bannerImage: formData.bannerImage
+        };
+        
+        setUser(updatedUser);
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setSaveError('Failed to update profile. Please try again.');
+    }
     
-    setUser(updatedUser);
-    navigate('/dashboard');
+    setSaving(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -267,13 +320,20 @@ const ProfileUpdate: React.FC = () => {
               </div>
             </div>
 
+            {saveError && (
+              <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-600 text-sm">{saveError}</p>
+              </div>
+            )}
+
             <div className="mt-8 text-center">
               <button
                 type="submit"
-                className="bg-[#003366] text-white px-8 py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors inline-flex items-center space-x-2"
+                disabled={saving}
+                className="bg-[#003366] text-white px-8 py-3 rounded-lg font-semibold hover:bg-[#004080] transition-colors inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={18} />
-                <span>Save Profile</span>
+                <span>{saving ? 'Saving...' : 'Save Profile'}</span>
               </button>
             </div>
           </form>

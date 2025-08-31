@@ -4,12 +4,11 @@ import { useUser } from '../context/UserContext';
 import { Home, User, LogOut, Search, Heart } from 'lucide-react';
 
 const Header: React.FC = () => {
-  const { user, setUser } = useUser();
+  const { user, logout } = useUser();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
